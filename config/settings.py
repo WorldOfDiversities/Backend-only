@@ -105,7 +105,18 @@ SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-dev-only-change-me'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env_bool('DJANGO_DEBUG', default=True)
 
-ALLOWED_HOSTS = env_list('DJANGO_ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
+allowed_hosts = env_list('DJANGO_ALLOWED_HOSTS', default=['127.0.0.1', 'localhost'])
+
+# Render provides the external hostname at runtime. Include it automatically so
+# host validation keeps working when service names/domains change.
+render_external_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME', '').strip()
+if render_external_hostname and render_external_hostname not in allowed_hosts:
+    allowed_hosts.append(render_external_hostname)
+
+if not DEBUG and '.onrender.com' not in allowed_hosts:
+    allowed_hosts.append('.onrender.com')
+
+ALLOWED_HOSTS = allowed_hosts
 
 
 # Application definition
