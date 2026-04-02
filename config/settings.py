@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 import os
 from pathlib import Path
 from datetime import timedelta
+from urllib.parse import parse_qs, unquote, urlparse
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -63,6 +64,36 @@ def env_list(name: str, default: list[str] | None = None) -> list[str]:
 def looks_like_email(value: str) -> bool:
     candidate = (value or "").strip()
     return "@" in candidate and "." in candidate.split("@")[-1]
+
+
+def parse_database_url(database_url: str) -> dict[str, object] | None:
+    url = (database_url or "").strip()
+    if not url:
+        return None
+
+    parsed = urlparse(url)
+    if parsed.scheme not in {"postgres", "postgresql"}:
+        return None
+
+    database_name = parsed.path.lstrip("/")
+    query_params = parse_qs(parsed.query)
+    sslmode = (query_params.get("sslmode", [""])[0] or "").strip()
+
+    database_config: dict[str, object] = {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": unquote(database_name),
+        "USER": unquote(parsed.username or ""),
+        "PASSWORD": unquote(parsed.password or ""),
+        "HOST": parsed.hostname or "",
+        "PORT": str(parsed.port or "5432"),
+    }
+
+    if sslmode:
+        database_config["OPTIONS"] = {"sslmode": sslmode}
+    elif database_config["HOST"] and "supabase" in str(database_config["HOST"]).lower():
+        database_config["OPTIONS"] = {"sslmode": "require"}
+
+    return database_config
 
 
 # Quick-start development settings - unsuitable for production
@@ -138,16 +169,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.getenv('DB_NAME', 'Django_Project'),
-        'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', '1234'),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5432'),
+DATABASE_URL = os.getenv('DATABASE_URL', '').strip()
+database_from_url = parse_database_url(DATABASE_URL)
+
+if database_from_url is not None:
+    DATABASES = {
+        'default': database_from_url,
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.getenv('DB_NAME', 'Django_Project'),
+            'USER': os.getenv('DB_USER', 'postgres'),
+            'PASSWORD': os.getenv('DB_PASSWORD', '1234'),
+            'HOST': os.getenv('DB_HOST', 'localhost'),
+            'PORT': os.getenv('DB_PORT', '5432'),
+        }
+    }
 
 
 # Password validation

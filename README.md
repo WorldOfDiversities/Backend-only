@@ -11,6 +11,7 @@ Versioned API backend for the POS project.
 
 - Copy values from .env.example into your environment manager of choice.
 - Minimum required variables for local run are the PostgreSQL variables.
+- For Supabase remote Postgres, set `DATABASE_URL` and leave the local `DB_*` values empty or unused.
 - For frontend integration, set CORS and CSRF origins explicitly.
 
 Important security variables:
@@ -59,12 +60,12 @@ Reset-link reachability:
 1. Set database environment variables in PowerShell:
 
 ```powershell
-$env:DB_NAME='Django_Project'
-$env:DB_USER='postgres'
-$env:DB_PASSWORD='1234'
-$env:DB_HOST='localhost'
-$env:DB_PORT='5432'
+$env:DATABASE_URL='postgresql://postgres.ecdjhltsmxfokzlsweuo:YOUR-PASSWORD@aws-0-eu-west-1.pooler.supabase.com:5432/postgres?sslmode=require'
 ```
+
+If you are running locally without Supabase, you can keep using the `DB_NAME`, `DB_USER`, `DB_PASSWORD`, `DB_HOST`, and `DB_PORT` variables instead.
+
+Note: Supabase `anon` and `service_role` keys are for Supabase API/client access. They are not the Django database password.
 
 2. Run migrations:
 
@@ -82,6 +83,20 @@ pipenv run python manage.py runserver
 
 ```powershell
 Invoke-RestMethod -Method Post -Uri "http://127.0.0.1:8000/api/v1/auth/token/" -ContentType "application/json" -Body (@{ username = "admin"; password = "Admin@12345" } | ConvertTo-Json)
+```
+
+## Seed Demo Data
+
+To populate the database with demo data for users, settings, products, customers, inventory, sales, payments, receipts, and audit logs:
+
+```powershell
+pipenv run python manage.py seed_demo_data
+```
+
+Optional custom password for demo accounts:
+
+```powershell
+pipenv run python manage.py seed_demo_data --password "YourDemoPassword123"
 ```
 
 ## Hosting
