@@ -113,7 +113,9 @@ render_external_hostname = os.getenv('RENDER_EXTERNAL_HOSTNAME', '').strip()
 if render_external_hostname and render_external_hostname not in allowed_hosts:
     allowed_hosts.append(render_external_hostname)
 
-if not DEBUG and '.onrender.com' not in allowed_hosts:
+# Keep Render domains allowed regardless of debug flag to avoid host
+# mismatches when env vars are incomplete or temporarily misconfigured.
+if '.onrender.com' not in allowed_hosts:
     allowed_hosts.append('.onrender.com')
 
 ALLOWED_HOSTS = allowed_hosts
