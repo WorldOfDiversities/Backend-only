@@ -47,6 +47,7 @@ class PaystackInitializeApiTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertEqual(response.data["payment_method"], "CARD")
+		self.assertEqual(response.data["channel"], "card")
 		self.assertEqual(response.data["reference"], "CARD-ABC123")
 
 		call_args, _ = mock_gateway_request.call_args
@@ -74,6 +75,7 @@ class PaystackInitializeApiTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_200_OK)
 		self.assertEqual(response.data["payment_method"], "MOBILE_MONEY")
+		self.assertEqual(response.data["channel"], "mobile_money")
 
 		call_args, _ = mock_gateway_request.call_args
 		sent_payload = call_args[2]

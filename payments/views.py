@@ -139,6 +139,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
 		return Response(
 			{
 				'payment_method': payment_method,
+				'channel': channel,
 				'reference': data.get('reference', reference),
 				'authorization_url': data.get('authorization_url', ''),
 				'access_code': data.get('access_code', ''),
