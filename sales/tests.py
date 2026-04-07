@@ -100,3 +100,20 @@ class CheckoutApiTests(APITestCase):
 		response = self.client.post(self.checkout_url, payload, format="json")
 		self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 		self.assertIn("detail", response.data)
+
+	def test_checkout_card_payment_succeeds_with_reference(self):
+		self._auth()
+		payload = {
+			"items": [{"product_id": self.product.id, "quantity": 1}],
+			"payment_method": "CARD",
+			"payment_reference": "CARD-TXN-001",
+			"discount_amount": "0.00",
+			"tax_amount": "0.00",
+		}
+
+		response = self.client.post(self.checkout_url, payload, format="json")
+
+		self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+		payment = Payment.objects.get(id=response.data["payment_id"])
+		self.assertEqual(payment.method, Payment.Method.CARD)
+		self.assertEqual(payment.reference, "CARD-TXN-001")

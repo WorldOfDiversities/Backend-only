@@ -31,6 +31,10 @@ def finalize_payment(*, sale_id: int, processed_by_profile_id: int | None, metho
     if method not in Payment.Method.values:
         raise ValidationServiceError(f"Unsupported payment method: {method}")
 
+    cleaned_reference = reference.strip()
+    if method in {Payment.Method.MOBILE_MONEY, Payment.Method.CARD, Payment.Method.SPLIT} and not cleaned_reference:
+        raise ValidationServiceError("Payment reference is required for electronic payments")
+
     with transaction.atomic():
         sale = Sale.objects.select_for_update().filter(id=sale_id, is_deleted=False).first()
         if sale is None:
@@ -72,7 +76,7 @@ def finalize_payment(*, sale_id: int, processed_by_profile_id: int | None, metho
             processed_by=processed_by,
             method=method,
             amount=normalized_amount,
-            reference=reference.strip(),
+            reference=cleaned_reference,
             status=Payment.Status.COMPLETED,
         )
 

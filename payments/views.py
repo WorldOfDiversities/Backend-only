@@ -75,13 +75,30 @@ class PaymentViewSet(viewsets.ModelViewSet):
 		except error.URLError as exc:
 			return None, f'Unable to reach Paystack: {exc.reason}'
 
+	@staticmethod
+	def _parse_gateway_payment_method(value: str) -> str:
+		candidate = str(value or '').strip().upper()
+		if not candidate:
+			return Payment.Method.MOBILE_MONEY
+		if candidate not in {Payment.Method.MOBILE_MONEY, Payment.Method.CARD}:
+			raise ValueError('payment_method must be MOBILE_MONEY or CARD.')
+		return candidate
+
 	@action(detail=False, methods=['post'], url_path='paystack/initialize', permission_classes=[IsStaffRole])
 	def paystack_initialize(self, request):
 		amount = request.data.get('amount')
+		payment_method_raw = request.data.get('payment_method', Payment.Method.MOBILE_MONEY)
 		email = self._normalize_email(str(request.data.get('email', '')))
 		phone_number = str(request.data.get('phone_number', '')).strip()
-		reference = str(request.data.get('reference', '')).strip() or f"MOMO-{uuid.uuid4().hex[:12].upper()}"
 		currency = str(request.data.get('currency', 'GHS')).strip().upper() or 'GHS'
+
+		try:
+			payment_method = self._parse_gateway_payment_method(str(payment_method_raw))
+		except ValueError as exc:
+			return Response({'detail': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+		reference_prefix = 'CARD' if payment_method == Payment.Method.CARD else 'MOMO'
+		reference = str(request.data.get('reference', '')).strip() or f"{reference_prefix}-{uuid.uuid4().hex[:12].upper()}"
 
 		if amount is None:
 			return Response({'detail': 'Amount is required.'}, status=status.HTTP_400_BAD_REQUEST)
@@ -95,16 +112,17 @@ class PaymentViewSet(viewsets.ModelViewSet):
 			return Response({'detail': 'Amount must be greater than zero.'}, status=status.HTTP_400_BAD_REQUEST)
 
 		amount_kobo = int((amount_decimal * Decimal('100')).quantize(Decimal('1')))
+		channel = 'card' if payment_method == Payment.Method.CARD else 'mobile_money'
 
 		payload = {
 			'email': email,
 			'amount': amount_kobo,
 			'currency': currency,
 			'reference': reference,
-			'channels': ['mobile_money'],
+			'channels': [channel],
 			'metadata': {
 				'integration': 'swiftpos',
-				'payment_method': 'MOBILE_MONEY',
+				'payment_method': payment_method,
 				'phone_number': phone_number,
 			},
 		}
@@ -120,10 +138,11 @@ class PaymentViewSet(viewsets.ModelViewSet):
 		data = gateway_response.get('data') or {}
 		return Response(
 			{
+				'payment_method': payment_method,
 				'reference': data.get('reference', reference),
 				'authorization_url': data.get('authorization_url', ''),
 				'access_code': data.get('access_code', ''),
-				'message': gateway_response.get('message', 'MoMo payment initialized.'),
+				'message': gateway_response.get('message', f'{payment_method.title()} payment initialized.'),
 			},
 			status=status.HTTP_200_OK,
 		)
