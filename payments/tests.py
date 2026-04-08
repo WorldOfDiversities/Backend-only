@@ -91,3 +91,17 @@ class PaystackInitializeApiTests(APITestCase):
 
 		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 		self.assertIn("payment_method", response.data["detail"])
+
+	def test_paystack_initialize_rejects_channel_mismatch(self):
+		response = self.client.post(
+			self.url,
+			{
+				"amount": "10.00",
+				"payment_method": "CARD",
+				"channel": "mobile_money",
+			},
+			format="json",
+		)
+
+		self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+		self.assertIn("Channel mismatch", response.data["detail"])

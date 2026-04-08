@@ -88,6 +88,7 @@ class PaymentViewSet(viewsets.ModelViewSet):
 	def paystack_initialize(self, request):
 		amount = request.data.get('amount')
 		payment_method_raw = request.data.get('payment_method', Payment.Method.MOBILE_MONEY)
+		channel_hint_raw = request.data.get('channel', '')
 		email = self._normalize_email(str(request.data.get('email', '')))
 		phone_number = str(request.data.get('phone_number', '')).strip()
 		currency = str(request.data.get('currency', 'GHS')).strip().upper() or 'GHS'
@@ -113,6 +114,17 @@ class PaymentViewSet(viewsets.ModelViewSet):
 
 		amount_kobo = int((amount_decimal * Decimal('100')).quantize(Decimal('1')))
 		channel = 'card' if payment_method == Payment.Method.CARD else 'mobile_money'
+		channel_hint = str(channel_hint_raw or '').strip().lower()
+		if channel_hint and channel_hint != channel:
+			return Response(
+				{
+					'detail': (
+						f"Channel mismatch for payment_method={payment_method}. "
+						f"Expected '{channel}', got '{channel_hint}'."
+					)
+				},
+				status=status.HTTP_400_BAD_REQUEST,
+			)
 
 		payload = {
 			'email': email,
