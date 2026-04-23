@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Point of Sale System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="what.css">
+</head>
+<body>
+  <main class="hero-wrapper">
+    <section class="hero-card">
+      <header class="topbar">
+        <a href="#" class="brand" aria-label="Point of Sale System">
+          <span class="brand-mark" aria-hidden="true">
+            <svg class="brand-mark-icon" viewBox="0 0 24 24" role="img" aria-hidden="true" focusable="false">
+              <polygon points="7,3.8 17,3.8 22,12 17,20.2 7,20.2 2,12" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round"></polygon>
+            </svg>
+          </span>
+          <span class="brand-text">SwiftPOS</span>
+        </a>
+
+        <button class="theme-pills" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">
+          <span class="dot blue" id="theme-dot-dark"></span>
+          <span class="dot light" id="theme-dot-light"></span>
+        </button>
+
+        <nav class="top-actions" aria-label="Authentication actions">
+          <a href="login.html" class="btn btn-login">Login</a>
+          <a href="register.html" class="btn btn-register">Register</a>
+        </nav>
+      </header>
+
+      <div class="hero-content">
+        <div class="hero-copy">
+          <h1>
+            Find Your Shopping <span>Accelerator</span><br>
+            Shop Smarter
+          </h1>
+
+          <p>
+            This is where shopping meets smart tech and superior user service.
+            Elevate your retail experience with modern speed, connection,
+            and solutions built to simplify the way you shop.
+          </p>
+        </div>
+
+        <div class="hero-image-shell">
+          <img
+            class="hero-image"
+            src="images/Hero-image.png"
+            alt="Smiling student with graduation cap"
+          >
+        </div>
+      </div>
+
+      <span class="shape red"></span>
+      <span class="shape yellow"></span>
+      <span class="shape blue"></span>
+      <span class="shape green"></span>
+    </section>
+  </main>
+</body>
+<script>
+  const THEME_KEY = "pos_onboarding_theme";
+  const body = document.body;
+  const toggle = document.getElementById("theme-toggle");
+  const darkDot = document.getElementById("theme-dot-dark");
+  const lightDot = document.getElementById("theme-dot-light");
+
+  function applyTheme(theme) {
+    const normalized = theme === "dark" ? "dark" : "light";
+    const isDark = normalized === "dark";
+
+    body.setAttribute("data-theme", normalized);
+    toggle.setAttribute("aria-pressed", String(isDark));
+    toggle.setAttribute("aria-label", isDark ? "Switch to light mode" : "Switch to dark mode");
+
+    darkDot.classList.toggle("active", isDark);
+    lightDot.classList.toggle("active", !isDark);
+  }
+
+  function resolveInitialTheme() {
+    const saved = localStorage.getItem(THEME_KEY);
+    if (saved === "dark" || saved === "light") {
+      return saved;
+    }
+    return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  }
+
+  function toggleTheme() {
+    const current = body.getAttribute("data-theme") === "dark" ? "dark" : "light";
+    const next = current === "dark" ? "light" : "dark";
+    localStorage.setItem(THEME_KEY, next);
+    applyTheme(next);
+  }
+
+  function animateOnboardingFromButton() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      return;
+    }
+
+    const heroCard = document.querySelector(".hero-card");
+    const sourceButton = document.querySelector(".btn-register") || document.querySelector(".btn-login");
+    if (!heroCard || !sourceButton) {
+      return;
+    }
+
+    const cardRect = heroCard.getBoundingClientRect();
+    const sourceRect = sourceButton.getBoundingClientRect();
+
+    const cardCenterX = cardRect.left + cardRect.width / 2;
+    const cardCenterY = cardRect.top + cardRect.height / 2;
+    const sourceCenterX = sourceRect.left + sourceRect.width / 2;
+    const sourceCenterY = sourceRect.top + sourceRect.height / 2;
+
+    const deltaX = 0;
+    const deltaY = Math.max(72, Math.abs(cardCenterY - sourceCenterY) * 0.45);
+
+    heroCard.style.setProperty("--entry-x", `${deltaX}px`);
+    heroCard.style.setProperty("--entry-y", `${deltaY}px`);
+
+    const cleanup = () => {
+      body.classList.remove("is-animating-in");
+      heroCard.style.removeProperty("--entry-x");
+      heroCard.style.removeProperty("--entry-y");
+    };
+
+    body.classList.remove("is-animating-in");
+    window.requestAnimationFrame(() => {
+      body.classList.add("is-animating-in");
+      heroCard.addEventListener("animationend", cleanup, { once: true });
+      window.setTimeout(cleanup, 1000);
+    });
+  }
+
+  applyTheme(resolveInitialTheme());
+  animateOnboardingFromButton();
+  toggle.addEventListener("click", toggleTheme);
+</script>
+</html>
