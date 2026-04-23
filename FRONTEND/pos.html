@@ -1336,6 +1336,22 @@ async function confirmSale() {
     return;
   }
 
+  // If electronic payment, finalize the payment
+  if (shouldUseGateway(selectedPayment) && result.payment_id) {
+    try {
+      showToast('Finalizing payment verification...');
+      const finalizeResult = await apiCall('POST', `/payments/${result.payment_id}/finalize/`, {});
+      if (!finalizeResult) {
+        showToast('⚠ Sale created but payment finalization pending. Check dashboard.');
+      } else {
+        showToast('✓ Payment verified and finalized');
+      }
+    } catch (error) {
+      console.error('Payment finalization error:', error);
+      showToast('⚠ Sale created but payment finalization failed. Reference: ' + result.sale_number);
+    }
+  }
+
   // Success - close receipt modal and show success
   document.getElementById('s-total').textContent = 'GH₵ ' + total.toFixed(2);
   document.getElementById('s-change').textContent = selectedPayment === 'Cash' && change > 0
